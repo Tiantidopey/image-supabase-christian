@@ -1,0 +1,7 @@
+path: D:\Documents\capstone\pyrolert-ver1\merging\combined\code\data
+train: train\images
+val: validation\images
+
+nc: 1
+
+names: ["person"]
