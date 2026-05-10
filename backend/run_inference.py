@@ -2,24 +2,18 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import argparse
-import json
 
 from config import load_settings
-from pipeline import run_pipeline
+from inference import InferenceRunner
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description='Run YOLO inference and push annotated outputs to Supabase')
+    parser = argparse.ArgumentParser(description='Run YOLO inference on a folder and save outputs locally')
     parser.add_argument('--source', help='Image file or folder to process')
     parser.add_argument('--model', help='Path to the trained YOLO weights')
     parser.add_argument('--output-dir', help='Directory for annotated outputs')
     parser.add_argument('--run-name', help='Name for this inference run')
     parser.add_argument('--confidence', type=float, help='Confidence threshold')
-    parser.add_argument('--dry-run', action='store_true', help='Skip Supabase upload and only write local outputs')
-    parser.add_argument('--capture', action='store_true', help='Capture an image from the ESP32 before inference')
-    parser.add_argument('--esp32-url', help='ESP32 base URL (ex: http://192.168.1.50)')
-    parser.add_argument('--capture-delay', type=int, help='Seconds to wait after triggering capture')
-    parser.add_argument('--capture-retries', type=int, help='Download retries for the ESP32 image')
     parser.add_argument('--nms-iou', type=float, help='IoU threshold for NMS suppression')
     return parser.parse_args()
 
@@ -36,19 +30,19 @@ def main() -> None:
         output_dir=args.output_dir,
         run_name=args.run_name or _timestamp_run_name(),
         confidence=args.confidence,
-        dry_run=args.dry_run,
-        esp32_url=args.esp32_url,
-        capture_delay=args.capture_delay,
-        capture_retries=args.capture_retries,
         nms_iou=args.nms_iou,
     )
-    try:
-        result = run_pipeline(settings, capture=args.capture)
-    except RuntimeError as exc:
-        print(str(exc))
-        return
 
-    print(json.dumps(result, indent=2))
+    runner = InferenceRunner(settings.model_path, settings.output_dir)
+    run_dir, summaries = runner.run(
+        settings.source_path,
+        settings.run_name,
+        settings.confidence,
+        settings.nms_iou,
+    )
+
+    print(f'Results saved to {run_dir}')
+    print(f'Images processed: {len(summaries)}')
 
 
 if __name__ == '__main__':

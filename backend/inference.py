@@ -4,6 +4,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+import cv2
+
 from ultralytics import YOLO
 
 
@@ -19,16 +21,32 @@ class PredictionSummary:
 
 class InferenceRunner:
     def __init__(self, model_path: Path, output_dir: Path) -> None:
-        self.model_path = model_path
+        self.model_path = self._resolve_model_path(model_path)
         self.output_dir = output_dir
-        self.model = YOLO(str(model_path))
+        self.model = YOLO(str(self.model_path), task='detect')
 
-    def run(self, source_path: Path, run_name: str, confidence: float) -> tuple[Path, list[PredictionSummary]]:
+    def _resolve_model_path(self, model_path: Path) -> Path:
+        if model_path.is_dir():
+            ncnn_param = model_path / 'model.ncnn.param'
+            ncnn_bin = model_path / 'model.ncnn.bin'
+            if ncnn_param.exists() and ncnn_bin.exists():
+                return model_path
+        return model_path
+
+    def run(
+        self,
+        source_path: Path,
+        run_name: str,
+        confidence: float,
+        nms_iou: float,
+    ) -> tuple[Path, list[PredictionSummary]]:
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        run_dir = self.output_dir / run_name
+        run_dir.mkdir(parents=True, exist_ok=True)
         results = self.model.predict(
             source=str(source_path),
             conf=confidence,
-            save=True,
+            iou=nms_iou,
             project=str(self.output_dir),
             name=run_name,
             exist_ok=True,
@@ -36,16 +54,14 @@ class InferenceRunner:
         )
 
         if not results:
-            run_dir = self.output_dir / run_name
-            run_dir.mkdir(parents=True, exist_ok=True)
             return run_dir, []
-
-        run_dir = Path(results[0].save_dir)
         summaries: list[PredictionSummary] = []
 
         for result in results:
             original_path = Path(result.path)
             annotated_path = run_dir / original_path.name
+            annotated_image = result.plot(line_width=1, font_size=10)
+            cv2.imwrite(str(annotated_path), annotated_image)
             boxes = getattr(result, "boxes", None)
             box_count = len(boxes) if boxes is not None else 0
             confidences = [float(box.conf[0]) for box in boxes] if boxes is not None and len(boxes) else []

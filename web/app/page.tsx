@@ -1,4 +1,5 @@
 import { createSupabaseServerClient } from '../lib/supabase';
+import CaptureButton from './capture-button';
 
 type ResultRow = {
   id: string;
@@ -54,6 +55,7 @@ export default async function Home() {
           The Python runner processes local images, uploads annotated outputs to Supabase,
           and this dashboard renders the latest records without touching the training code.
         </p>
+        <CaptureButton />
       </section>
 
       <dl className="stats">

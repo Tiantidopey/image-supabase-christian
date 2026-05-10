@@ -6,12 +6,15 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent / '.env')
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 DEFAULT_MODEL_PATH = ROOT_DIR / 'code' / 'runs' / 'detect' / 'train2' / 'weights' / 'best.pt'
 DEFAULT_SOURCE_PATH = ROOT_DIR / 'input_images'
 DEFAULT_OUTPUT_DIR = ROOT_DIR / 'output_images'
+DEFAULT_CAPTURE_DELAY = 4
+DEFAULT_CAPTURE_RETRIES = 5
+DEFAULT_NMS_IOU = 0.4
 
 
 @dataclass(frozen=True)
@@ -21,6 +24,10 @@ class Settings:
     supabase_bucket: str
     runs_table: str
     results_table: str
+    esp32_url: str | None
+    capture_delay: int
+    capture_retries: int
+    nms_iou: float
     model_path: Path
     source_path: Path
     output_dir: Path
@@ -43,6 +50,10 @@ def load_settings(
     run_name: str | None = None,
     confidence: float | None = None,
     dry_run: bool | None = None,
+    esp32_url: str | None = None,
+    capture_delay: int | None = None,
+    capture_retries: int | None = None,
+    nms_iou: float | None = None,
 ) -> Settings:
     return Settings(
         supabase_url=os.getenv('SUPABASE_URL') or None,
@@ -50,6 +61,10 @@ def load_settings(
         supabase_bucket=os.getenv('SUPABASE_BUCKET', 'annotated-outputs'),
         runs_table=os.getenv('SUPABASE_RUNS_TABLE', 'inference_runs'),
         results_table=os.getenv('SUPABASE_RESULTS_TABLE', 'inference_images'),
+        esp32_url=esp32_url or os.getenv('ESP32_URL') or None,
+        capture_delay=capture_delay if capture_delay is not None else int(os.getenv('CAPTURE_DELAY', DEFAULT_CAPTURE_DELAY)),
+        capture_retries=capture_retries if capture_retries is not None else int(os.getenv('CAPTURE_RETRIES', DEFAULT_CAPTURE_RETRIES)),
+        nms_iou=nms_iou if nms_iou is not None else float(os.getenv('NMS_IOU', DEFAULT_NMS_IOU)),
         model_path=Path(model_path or os.getenv('MODEL_PATH') or DEFAULT_MODEL_PATH),
         source_path=Path(source_path or os.getenv('SOURCE_PATH') or DEFAULT_SOURCE_PATH),
         output_dir=Path(output_dir or os.getenv('OUTPUT_DIR') or DEFAULT_OUTPUT_DIR),

@@ -57,6 +57,26 @@ This repository is a self-contained simulation project that demonstrates an end-
 
 4. Open `http://localhost:3000` to view results.
 
+## ESP32 capture workflow
+
+If you want the Raspberry Pi to pull a fresh image from an ESP32-CAM before inference, run:
+
+```bash
+python backend/main.py --capture --esp32-url http://<esp32-ip>
+```
+
+The captured image is saved into `input_images/`, then the inference pipeline runs and uploads to Supabase as usual.
+
+## Capture from the dashboard
+
+To trigger capture + inference from the Next.js UI, run the backend API first:
+
+```bash
+python -m uvicorn backend.server:app --reload --port 8000
+```
+
+Then start the Next.js app and use the "Capture + Infer" button. The dashboard calls the API and refreshes the feed.
+
 ## Supabase setup summary
 
 - Run `supabase/schema.sql` in the Supabase SQL editor.
